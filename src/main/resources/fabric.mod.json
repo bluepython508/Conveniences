@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "conveniences",
+  "version": "${version}",
+
+  "name": "Conveniences",
+  "description": "Adds some convenient items for personal utilities.",
+  "authors": [
+    "Me!"
+  ],
+  "contact": {},
+
+  "license": "GPLv3",
+  "icon": "assets/conveniences/icon.png",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "io.github.bluepython508.conveniences.ConveniencesModKt::init"
+    ],
+    "client": [
+      "io.github.bluepython508.conveniences.ConveniencesModKt::clientInit"
+    ],
+    "modmenu": [
+      "io.github.bluepython508.conveniences.ModMenuIntegration"
+    ]
+  },
+  "mixins": [
+    "conveniences.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.7.1",
+    "fabric-language-kotlin": "*",
+    "minecraft": "1.16.x"
+  }
+}

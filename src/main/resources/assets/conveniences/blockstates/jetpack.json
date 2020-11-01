@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "tier=iron": {
+      "model": "conveniences:block/jetpackiron"
+    },
+    "tier=gold": {
+      "model": "conveniences:block/jetpackgold"
+    },
+    "tier=diamond": {
+      "model": "conveniences:block/jetpackdiamond"
+    }
+  }
+}

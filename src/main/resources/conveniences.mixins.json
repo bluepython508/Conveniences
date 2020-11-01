@@ -1,0 +1,23 @@
+{
+  "required": true,
+  "package": "io.github.bluepython508.conveniences.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "GlowMixin",
+    "InputGetter",
+    "ItemRepairAmountMixin",
+    "LensRecipeMixin",
+    "StopElytraMixin"
+  ],
+  "client": [
+    "ElytraKeybindMixin",
+    "GlowColorMixin",
+    "NetherFogMixin",
+    "TrinketHudMixin",
+    "ZoomMixin",
+    "ZoomMouseSensitivityMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
