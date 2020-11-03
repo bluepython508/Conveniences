@@ -37,6 +37,7 @@ import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.PacketByteBuf
+import net.minecraft.text.TranslatableText
 import net.minecraft.util.Identifier
 import net.minecraft.util.registry.Registry
 
@@ -96,7 +97,7 @@ object ItemGoggles : Trinket(Settings().maxCount(1).group(creativeTab)) {
 }
 
 @Environment(EnvType.CLIENT)
-object GogglesRadialMenu : RadialScreen(gogglesMenuKey, renderHandSlot = false) {
+object GogglesRadialMenu : RadialScreen(gogglesMenuKey, renderHandSlot = false, menuTitle = TranslatableText("conveniences.goggles.menu.title")) {
     override fun onTrigger(slot: Int) {
         val component = MinecraftClient.getInstance().player?.trinketsComponent?.getStack(
             SlotGroups.HEAD,

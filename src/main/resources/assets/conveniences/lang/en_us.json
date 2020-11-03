@@ -50,5 +50,14 @@
   "text.autoconfig.conveniences.option.hooks.diamond.length": "Length",
   "text.autoconfig.conveniences.option.enderLauncher.durability": "Durability",
   "text.autoconfig.conveniences.option.enderLauncher.maxRange": "Max Range",
-  "text.autoconfig.conveniences.option.enderLauncher.durabilityRepairedPerEnderPearl": "Durability Per Ender Pearl"
+  "text.autoconfig.conveniences.option.enderLauncher.durabilityRepairedPerEnderPearl": "Durability Per Ender Pearl",
+
+  "conveniences.goggles.menu.title": "Lens Menu",
+  "conveniences.toolbelt.menu.title": "Toolbelt Menu",
+  "conveniences.jetpack.fuel": "Fuel",
+  "conveniences.jetpack.enabled": "Enabled",
+  "conveniences.jetpack.hovering": "Hovering",
+  "conveniences.jetpack.cannot_hover": "Cannot Hover!",
+  "conveniences.true": "True",
+  "conveniences.false": "False"
 }

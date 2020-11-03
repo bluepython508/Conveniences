@@ -17,6 +17,7 @@ import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.PacketByteBuf
+import net.minecraft.text.TranslatableText
 import net.minecraft.util.Hand
 import net.minecraft.util.Identifier
 
@@ -85,7 +86,7 @@ val ItemStack.toolbeltComponent: ToolbeltComponent?
     get() = ComponentProvider.fromItemStack(this).getComponent(TOOLBELT_COMPONENT_TYPE)
 
 @Environment(EnvType.CLIENT)
-object ToolBeltRadialScreen: RadialScreen(toolBeltActivateKey) {
+object ToolBeltRadialScreen: RadialScreen(toolBeltActivateKey, menuTitle = TranslatableText("conveniences.toolbelt.menu.title")) {
     override fun onTrigger(slot: Int) {
         val packetData = PacketByteBuf(Unpooled.buffer())
         packetData.writeInt(slot)

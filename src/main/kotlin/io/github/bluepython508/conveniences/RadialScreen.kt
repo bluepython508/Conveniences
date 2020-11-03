@@ -10,13 +10,13 @@ import net.minecraft.client.render.Tessellator
 import net.minecraft.client.render.VertexFormats
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.item.ItemStack
-import net.minecraft.text.LiteralText
+import net.minecraft.text.Text
 import org.lwjgl.opengl.GL11
 import kotlin.math.*
 
 @Environment(EnvType.CLIENT)
-abstract class RadialScreen(private val key: KeyBinding, private val renderHandSlot: Boolean = true) :
-    Screen(LiteralText("Radial Menu")) {
+abstract class RadialScreen(private val key: KeyBinding, private val renderHandSlot: Boolean = true, menuTitle: Text) :
+    Screen(menuTitle) {
     val active: Boolean
         get() = MinecraftClient.getInstance().currentScreen === this
 

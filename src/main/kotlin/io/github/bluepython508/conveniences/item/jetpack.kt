@@ -35,6 +35,7 @@ import net.minecraft.state.StateManager
 import net.minecraft.state.property.EnumProperty
 import net.minecraft.text.LiteralText
 import net.minecraft.text.Text
+import net.minecraft.text.TranslatableText
 import net.minecraft.util.Formatting
 import net.minecraft.util.Identifier
 import net.minecraft.util.StringIdentifiable
@@ -46,7 +47,8 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 
 
-class ItemJetpack(val tier: JetpackTier, settings: Settings) : Trinket(settings.maxDamage(tier.fuelStorage)), AmountRepairable {
+class ItemJetpack(val tier: JetpackTier, settings: Settings) : Trinket(settings.maxDamage(tier.fuelStorage)),
+    AmountRepairable {
     val id = Identifier(MODID, "jetpack${tier.toString().toLowerCase()}")
     override fun appendTooltip(
         stack: ItemStack?,
@@ -110,6 +112,7 @@ class ItemJetpack(val tier: JetpackTier, settings: Settings) : Trinket(settings.
     override fun getHUDText(player: PlayerEntity, stack: ItemStack): List<Text> {
         val jetpackComponent = stack.jetpackComponent!!
         val enabled = jetpackComponent.enabled
+        val hovering = jetpackComponent.hovering
         val fuelPercentage =
             ((stack.maxDamage - stack.damage).toDouble() / stack.maxDamage.toDouble() * 100.0).roundToInt()
         val fuelColor = when {
@@ -118,9 +121,15 @@ class ItemJetpack(val tier: JetpackTier, settings: Settings) : Trinket(settings.
             else -> Formatting.RED
         }
         return listOf(
-            LiteralText("Fuel: ").append(LiteralText("$fuelPercentage%").formatted(fuelColor)),
-            LiteralText("Enabled: ").append(LiteralText(enabled.toString()).formatted(if (enabled) Formatting.GREEN else Formatting.RED)),
-            if (jetpackComponent.tier.canHover) LiteralText("Hovering: ").append(LiteralText(jetpackComponent.hovering.toString()).formatted(if (jetpackComponent.hovering) Formatting.GREEN else Formatting.RED)) else LiteralText("This jetpack cannot hover").formatted(Formatting.RED)
+            TranslatableText("conveniences.jetpack.fuel").append(": ")
+                .append(LiteralText("$fuelPercentage%").formatted(fuelColor)),
+            TranslatableText("conveniences.jetpack.enabled").append(": ")
+                .append(TranslatableText("conveniences.${enabled}").formatted(if (enabled) Formatting.GREEN else Formatting.RED)),
+            if (jetpackComponent.tier.canHover)
+                TranslatableText("conveniences.jetpack.hovering").append(": ")
+                    .append(TranslatableText("conveniences.${hovering}").formatted(if (jetpackComponent.hovering) Formatting.GREEN else Formatting.RED))
+            else
+                TranslatableText("conveniences.jetpack.cannot_hover").formatted(Formatting.RED)
         )
     }
 
@@ -168,7 +177,8 @@ class ItemJetpack(val tier: JetpackTier, settings: Settings) : Trinket(settings.
 
     private fun toggleHover(player: PlayerEntity, stack: ItemStack) {
         val jetpackComponent = player.trinketsComponent.getStack(SlotGroups.CHEST, Slots.BACKPACK).jetpackComponent!!
-        jetpackComponent.hovering = !jetpackComponent.hovering // JetpackComponentNBT setter handles non-hoverable jetpacks, so we don't need to here
+        jetpackComponent.hovering =
+            !jetpackComponent.hovering // JetpackComponentNBT setter handles non-hoverable jetpacks, so we don't need to here
         if (jetpackComponent.hovering) jetpackComponent.hoverHeight = player.y
     }
 
@@ -224,7 +234,8 @@ class ItemJetpack(val tier: JetpackTier, settings: Settings) : Trinket(settings.
         stack.damage != 0 && FuelRegistry.INSTANCE[ingredient.item]?.let { it > 0 } == true
 
     override fun getRepairAmount(toRepair: ItemStack, repairFrom: ItemStack): Int =
-        (FuelRegistry.INSTANCE[repairFrom.item] / (toRepair.jetpackComponent?.tier?.furnaceFuelFlightRatio ?: 1.0)).roundToInt()
+        (FuelRegistry.INSTANCE[repairFrom.item] / (toRepair.jetpackComponent?.tier?.furnaceFuelFlightRatio
+            ?: 1.0)).roundToInt()
 
     private fun glideThrustServer(player: PlayerEntity, stack: ItemStack) {
         if (!useFuel(player as ServerPlayerEntity, stack)) return
