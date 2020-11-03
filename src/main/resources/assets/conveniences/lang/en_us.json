@@ -1,7 +1,7 @@
 {
-  "item.conveniences.jetpackiron": "Iron Jetpack",
-  "item.conveniences.jetpackgold": "Gold Jetpack",
-  "item.conveniences.jetpackdiamond": "Diamond Jetpack",
+  "item.conveniences.jetpack_iron": "Iron Jetpack",
+  "item.conveniences.jetpack_gold": "Gold Jetpack",
+  "item.conveniences.jetpack_diamond": "Diamond Jetpack",
   "item.conveniences.aglet_traveller": "Aglets of the Traveller",
   "attribute.name.generic.step-height-entity-attributes.step-height": "Step Height",
   "itemGroup.conveniences.tab": "Conveniences",
@@ -10,7 +10,7 @@
   "item.conveniences.hook_gold": "Gold Hook",
   "item.conveniences.hook_diamond": "Diamond Hook",
   "item.conveniences.ender_launcher": "Ender Pearl Launcher",
-  "item.conveniences.goggles_night_vision": "Night Vision Goggles",
+  "item.conveniences.goggles": "Goggles",
 
 
   "text.autoconfig.conveniences.option.jetpacks": "Jetpacks",

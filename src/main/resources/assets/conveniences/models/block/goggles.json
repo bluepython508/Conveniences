@@ -1,12 +1,12 @@
 {
 	"credit": "Made with Blockbench",
 	"textures": {
-		"0": "conveniences:block/goggles_night_vision_texture_0",
-		"1": "conveniences:block/goggles_night_vision_texture_1",
-		"2": "conveniences:block/goggles_night_vision_texture_2",
-		"3": "conveniences:block/goggles_night_vision_texture_3",
-		"4": "conveniences:block/goggles_night_vision_texture_4",
-		"particle": "conveniences:block/goggles_night_vision_texture_0"
+		"0": "conveniences:block/goggles_texture_0",
+		"1": "conveniences:block/goggles_texture_1",
+		"2": "conveniences:block/goggles_texture_2",
+		"3": "conveniences:block/goggles_texture_3",
+		"4": "conveniences:block/goggles_texture_4",
+		"particle": "conveniences:block/goggles_texture_0"
 	},
 	"elements": [
 		{

@@ -36,18 +36,12 @@ val hooks = listOf(itemIronHook, itemGoldHook, itemDiamondHook)
 val launchers = listOf(ItemEnderLauncher, *hooks.toTypedArray())
 
 fun registerItems() {
-    Registry.ITEM.register(
-        itemIronJetpack.id,
-        itemIronJetpack
-    )
-    Registry.ITEM.register(
-        itemGoldJetpack.id,
-        itemGoldJetpack
-    )
-    Registry.ITEM.register(
-        itemDiamondJetpack.id,
-        itemDiamondJetpack
-    )
+    for (jetpack in jetpacks) {
+        Registry.ITEM.register(
+            jetpack.id,
+            jetpack
+        )
+    }
     Registry.ITEM.register(
         ItemAgletTraveller.id,
         ItemAgletTraveller
@@ -76,7 +70,7 @@ fun registerItems() {
         JetpackFakeBlock
     )
     Registry.BLOCK.register(
-        Identifier(MODID, "goggles_night_vision"),
+        Identifier(MODID, "goggles"),
         GogglesFakeBlock
     )
 }

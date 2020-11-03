@@ -1,6 +1,6 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "conveniences:item/jetpackiron"
+    "layer0": "conveniences:item/jetpack_gold"
   }
 }

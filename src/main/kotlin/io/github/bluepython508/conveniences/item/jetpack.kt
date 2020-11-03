@@ -49,7 +49,7 @@ import kotlin.math.sin
 
 class ItemJetpack(val tier: JetpackTier, settings: Settings) : Trinket(settings.maxDamage(tier.fuelStorage)),
     AmountRepairable {
-    val id = Identifier(MODID, "jetpack${tier.toString().toLowerCase()}")
+    val id = Identifier(MODID, "jetpack_${tier.toString().toLowerCase()}")
     override fun appendTooltip(
         stack: ItemStack?,
         world: World?,
