@@ -154,6 +154,10 @@ class ItemJetpack(val tier: JetpackTier, settings: Settings) : Trinket(settings.
         val stackLoaded = player.trinketsComponent.getStack(SlotGroups.CHEST, Slots.BACKPACK)
         when (keybind) {
             jetpackAscendKeyID -> flyClient(player, stackLoaded)
+            jetpackDescendKeyID -> {
+                val jetpackComponent = stackLoaded.jetpackComponent!!
+                jetpackComponent.hoverHeight = jetpackComponent.hoverHeight - (jetpackComponent.tier.acceleration / 5)
+            }
         }
     }
 
@@ -186,7 +190,7 @@ class ItemJetpack(val tier: JetpackTier, settings: Settings) : Trinket(settings.
         val jetpackComponent = stack.jetpackComponent!!
         if (!jetpackComponent.enabled) return
         if (jetpackComponent.hovering && jetpackComponent.tier.canHover) {
-            jetpackComponent.hoverHeight = jetpackComponent.hoverHeight + (jetpackComponent.tier.acceleration / 5)
+            jetpackComponent.hoverHeight += jetpackComponent.tier.acceleration / 5
             return
         }
         if (player.isFallFlying) {
@@ -198,7 +202,10 @@ class ItemJetpack(val tier: JetpackTier, settings: Settings) : Trinket(settings.
 
     private fun flyClient(player: PlayerEntity, stack: ItemStack) {
         val jetpackComponent = stack.jetpackComponent!!
-        if (!jetpackComponent.enabled || jetpackComponent.hovering) return
+        if (!jetpackComponent.enabled) return
+        if (jetpackComponent.hovering) {
+            jetpackComponent.hoverHeight += jetpackComponent.tier.acceleration / 5; return
+        }
         if (player.isFallFlying) {
             glideThrustClient(player, stack)
         } else {
@@ -294,29 +301,30 @@ data class HoverAlgorithmInput(val playerY: Double, val playerVelY: Double, val 
 
 typealias HoverAlgorithm = HoverAlgorithmInput.() -> Boolean // Returns whether to fire thrusters
 
-enum class JetpackTier(
-    val acceleration: Double,
-    val maxSpeed: Double,
-    val fuelStorage: Int,
-    val hoverAlgorithm: HoverAlgorithm,
-    val furnaceFuelFlightRatio: Double
-) : StringIdentifiable {
+enum class JetpackTier(private val category: JetpackCategory) : StringIdentifiable {
     IRON(config.jetpacks.iron),
     GOLD(config.jetpacks.gold),
     DIAMOND(config.jetpacks.diamond);
 
-    constructor(cfg: JetpackCategory) : this(
-        cfg.acceleration,
-        cfg.maxSpeed,
-        cfg.fuelStorage,
-        HoverAlgorithms[cfg.hoverAlgorithm],
-        cfg.burnTimeFlightTimeRatio
-    )
-
     override fun asString() = toString().toLowerCase()
 
     val canHover: Boolean
-        get() = hoverAlgorithm !== HoverAlgorithms.none
+        get() = category.hoverAlgorithm != HoverAlgorithms.NONE
+
+    val hoverAlgorithm
+        get() = category.hoverAlgorithm.algorithm
+
+    val fuelStorage
+        get() = category.fuelStorage
+
+    val acceleration
+        get() = category.acceleration
+
+    val furnaceFuelFlightRatio
+        get() = category.burnTimeFlightTimeRatio
+
+    val maxSpeed
+        get() = category.maxSpeed
 }
 
 interface JetpackComponent : ItemComponent<JetpackComponent> {

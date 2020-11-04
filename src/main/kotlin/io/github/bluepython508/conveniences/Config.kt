@@ -4,12 +4,10 @@ import io.github.bluepython508.conveniences.item.HoverAlgorithm
 import me.sargunvohra.mcmods.autoconfig1u.ConfigData
 import me.sargunvohra.mcmods.autoconfig1u.annotation.Config
 import me.sargunvohra.mcmods.autoconfig1u.annotation.ConfigEntry
-import me.sargunvohra.mcmods.autoconfig1u.shadowed.blue.endless.jankson.Comment
 
 @Config(name = MODID)
 class Config : ConfigData {
     @ConfigEntry.Gui.CollapsibleObject
-    @ConfigEntry.Gui.RequiresRestart
     var jetpacks = Jetpacks()
 
     @ConfigEntry.Gui.CollapsibleObject
@@ -32,20 +30,19 @@ data class JetpackCategory(
     var acceleration: Double,
     var maxSpeed: Double,
     var fuelStorage: Int,
-    var hoverAlgorithm: String,
-    @Comment("Burn ticks per tick of flight time when repairing. \n Set to 0 to disable furnace fuels as jetpack fuel \n(Currently, there are no other fuels so this is a bad idea).")
+    var hoverAlgorithm: HoverAlgorithms,
     var burnTimeFlightTimeRatio: Double
 )
 
 class Jetpacks {
     @ConfigEntry.Gui.CollapsibleObject
-    var iron = JetpackCategory(1.0, 3.0, 7500, "simple", 4.0)
+    var iron = JetpackCategory(1.0, 3.0, 7500, HoverAlgorithms.SIMPLE, 4.0)
 
     @ConfigEntry.Gui.CollapsibleObject
-    var gold = JetpackCategory(2.0, 4.0, 5000, "simple", 5.0)
+    var gold = JetpackCategory(2.0, 4.0, 5000, HoverAlgorithms.SIMPLE, 5.0)
 
     @ConfigEntry.Gui.CollapsibleObject
-    var diamond = JetpackCategory(1.6, 3.0, 10000, "complex", 3.0)
+    var diamond = JetpackCategory(1.6, 3.0, 10000, HoverAlgorithms.COMPLEX, 3.0)
 }
 
 data class HookCategory(
@@ -65,16 +62,8 @@ class Hooks {
     var diamond = HookCategory(5.0, 10.0, 5.0)
 }
 
-@Suppress("MemberVisibilityCanBePrivate")
-object HoverAlgorithms {
-    val none: HoverAlgorithm = { false }
-    val simple: HoverAlgorithm = { playerY < targetY }
-    val complex: HoverAlgorithm = { playerY + playerVelY * 1.8 < targetY }
-    operator fun get(value: String): HoverAlgorithm =
-        when (value) {
-            "none" -> none
-            "simple" -> simple
-            "complex" -> complex
-            else -> throw NoSuchElementException()
-        }
+enum class HoverAlgorithms(val algorithm: HoverAlgorithm) {
+    NONE({ false }),
+    SIMPLE({ playerY < targetY }),
+    COMPLEX({ playerY + playerVelY * 1.8 < targetY })
 }
