@@ -15,7 +15,8 @@
     "NetherFogMixin",
     "TrinketHudMixin",
     "ZoomMixin",
-    "ZoomMouseSensitivityMixin"
+    "ZoomMouseSensitivityMixin",
+    "ConfigEntryFieldNameSetter"
   ],
   "injectors": {
     "defaultRequire": 1

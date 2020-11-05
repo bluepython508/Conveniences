@@ -1,12 +1,19 @@
 package io.github.bluepython508.conveniences
 
 import io.github.bluepython508.conveniences.item.HoverAlgorithm
+import io.github.bluepython508.conveniences.mixin.ConfigEntryFieldNameSetter
+import me.sargunvohra.mcmods.autoconfig1u.AutoConfig
 import me.sargunvohra.mcmods.autoconfig1u.ConfigData
 import me.sargunvohra.mcmods.autoconfig1u.annotation.Config
 import me.sargunvohra.mcmods.autoconfig1u.annotation.ConfigEntry
+import me.sargunvohra.mcmods.autoconfig1u.gui.registry.api.GuiTransformer
+import me.shedaniel.clothconfig2.api.AbstractConfigListEntry
+import net.minecraft.text.TranslatableText
+import java.util.function.Predicate
+import kotlin.reflect.jvm.kotlinProperty
 
 @Config(name = MODID)
-class Config : ConfigData {
+class ModConfig : ConfigData {
     @ConfigEntry.Gui.CollapsibleObject
     var jetpacks = Jetpacks()
 
@@ -27,10 +34,15 @@ class EnderLauncher {
 }
 
 data class JetpackCategory(
+    @LangKey("text.autoconfig.conveniences.option.jetpacks.acceleration")
     var acceleration: Double,
+    @LangKey("text.autoconfig.conveniences.option.jetpacks.maxSpeed")
     var maxSpeed: Double,
+    @LangKey("text.autoconfig.conveniences.option.jetpacks.fuelStorage")
     var fuelStorage: Int,
+    @LangKey("text.autoconfig.conveniences.option.jetpacks.hoverAlgorithm")
     var hoverAlgorithm: HoverAlgorithms,
+    @LangKey("text.autoconfig.conveniences.option.jetpacks.burnFlightRatio")
     var burnTimeFlightTimeRatio: Double
 )
 
@@ -46,8 +58,11 @@ class Jetpacks {
 }
 
 data class HookCategory(
+    @LangKey("text.autoconfig.conveniences.option.hooks.shootSpeed")
     var shootSpeed: Double,
+    @LangKey("text.autoconfig.conveniences.option.hooks.length")
     var length: Double,
+    @LangKey("text.autoconfig.conveniences.option.hooks.reelSpeed")
     var reelSpeed: Double
 )
 
@@ -66,4 +81,20 @@ enum class HoverAlgorithms(val algorithm: HoverAlgorithm) {
     NONE({ false }),
     SIMPLE({ playerY < targetY }),
     COMPLEX({ playerY + playerVelY * 1.8 < targetY })
+}
+
+@Retention(AnnotationRetention.RUNTIME)
+@Target(AnnotationTarget.PROPERTY)
+annotation class LangKey(val key: String)
+
+fun registerLangKeyHandler() {
+    val registry = AutoConfig.getGuiRegistry(ModConfig::class.java)
+    registry.registerPredicateTransformer(
+        GuiTransformer { configListEntries: MutableList<AbstractConfigListEntry<Any>>, _, field, _, _, _ ->
+            val annotation = field.kotlinProperty?.annotations?.find { it is LangKey }!! as LangKey
+            configListEntries.forEach { (it as ConfigEntryFieldNameSetter).fieldName = TranslatableText(annotation.key) }
+            return@GuiTransformer configListEntries
+        },
+        Predicate { field -> field.kotlinProperty?.annotations?.any { it is LangKey } ?: false }
+    )
 }

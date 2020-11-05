@@ -39,13 +39,13 @@ val HOOK_COMPONENT_TYPE: ComponentType<HookComponent> = ComponentRegistry.INSTAN
 val GOGGLES_COMPONENT_TYPE: ComponentType<GoggleComponent> = ComponentRegistry.INSTANCE.registerIfAbsent(Identifier(MODID, "goggles_component"), GoggleComponent::class.java)
 
 
-val config: Config by lazy { AutoConfig.getConfigHolder(Config::class.java).config }
+val config: ModConfig by lazy { AutoConfig.getConfigHolder(ModConfig::class.java).config }
 
 
 val STOP_ELYTRA_PACKET_ID = Identifier(MODID, "stop_elytra")
 
 fun init() {
-    AutoConfig.register(Config::class.java, ::Toml4jConfigSerializer)
+    AutoConfig.register(ModConfig::class.java, ::Toml4jConfigSerializer)
     TrinketSlots.addSlot(
         SlotGroups.CHEST,
         Slots.BACKPACK,
@@ -113,6 +113,7 @@ val zoomIn: KeyBinding by lazy { KeyBinding("key.conveniences.zoom_in", InputUti
 val zoomOut: KeyBinding by lazy { KeyBinding("key.conveniences.zoom_out", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_PERIOD, "key.conveniences.category") }
 
 fun clientInit() {
+    registerLangKeyHandler()
     registerJetpackParticlePacket()
     registerHookParticlePacket()
     registerGoggleRenderEvents()
