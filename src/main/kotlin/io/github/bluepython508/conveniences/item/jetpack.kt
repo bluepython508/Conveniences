@@ -180,10 +180,11 @@ class ItemJetpack(val tier: JetpackTier, settings: Settings) : Trinket(settings.
     }
 
     private fun toggleHover(player: PlayerEntity, stack: ItemStack) {
-        val jetpackComponent = player.trinketsComponent.getStack(SlotGroups.CHEST, Slots.BACKPACK).jetpackComponent!!
+        val jetpackComponent = stack.jetpackComponent!!
         jetpackComponent.hovering =
             !jetpackComponent.hovering // JetpackComponentNBT setter handles non-hoverable jetpacks, so we don't need to here
         if (jetpackComponent.hovering) jetpackComponent.hoverHeight = player.y
+        player.trinketsComponent.sync()
     }
 
     private fun flyServer(player: PlayerEntity, stack: ItemStack) {
@@ -342,14 +343,14 @@ interface JetpackComponent : ItemComponent<JetpackComponent> {
 }
 
 class JetpackComponentNBT(override val tier: JetpackTier) : JetpackComponent {
-    override var enabled: Boolean = false
+    override var enabled: Boolean = true
         set(value) {
             if (!value) hovering = false
             field = value
         }
     override var hovering: Boolean = false
         set(value) {
-            if (!enabled && value) enabled = true
+            if (value) enabled = true
             if (!tier.canHover) {
                 field = false
                 hoverHeight = 0.0
@@ -369,7 +370,7 @@ class JetpackComponentNBT(override val tier: JetpackTier) : JetpackComponent {
     }
 
     override fun fromTag(tag: CompoundTag) {
-        enabled = if (tag.contains("enabled")) tag.getBoolean("enabled") else false
+        enabled = if (tag.contains("enabled")) tag.getBoolean("enabled") else true
         hovering = if (tag.contains("hovering")) tag.getBoolean("hovering") else false
         hoverHeight = if (tag.contains("hoverHeight")) tag.getDouble("hoverHeight") else 0.0
     }
