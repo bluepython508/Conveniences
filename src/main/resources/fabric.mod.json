@@ -10,8 +10,8 @@
   ],
   "contact": {},
 
-  "license": "GPLv3",
-  "icon": "assets/conveniences/icon.png",
+  "license": "GPLv3 (Code) and CC-BY-SA (Art)",
+  "icon": "assets/conveniences/textures/item/jetpack_iron.png",
 
   "environment": "*",
   "entrypoints": {
