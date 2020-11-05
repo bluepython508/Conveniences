@@ -55,6 +55,9 @@ class Jetpacks {
 
     @ConfigEntry.Gui.CollapsibleObject
     var diamond = JetpackCategory(1.6, 3.0, 10000, HoverAlgorithms.COMPLEX, 3.0)
+
+    @ConfigEntry.Gui.CollapsibleObject
+    var netherite = JetpackCategory(1.8, 3.2, 15000, HoverAlgorithms.COMPLEX, 2.5)
 }
 
 data class HookCategory(
@@ -75,6 +78,9 @@ class Hooks {
 
     @ConfigEntry.Gui.CollapsibleObject
     var diamond = HookCategory(5.0, 10.0, 5.0)
+
+    @ConfigEntry.Gui.CollapsibleObject
+    var netherite = HookCategory(5.0, 10.0, 5.0)
 }
 
 enum class HoverAlgorithms(val algorithm: HoverAlgorithm) {

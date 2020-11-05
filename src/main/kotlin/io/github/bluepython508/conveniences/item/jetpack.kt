@@ -26,6 +26,7 @@ import net.minecraft.client.render.VertexConsumerProvider
 import net.minecraft.client.render.entity.model.PlayerEntityModel
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.entity.player.PlayerEntity
+import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.PacketByteBuf
@@ -47,7 +48,10 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 
 
-class ItemJetpack(val tier: JetpackTier, settings: Settings) : Trinket(settings.maxDamage(tier.fuelStorage)),
+class ItemJetpack(val tier: JetpackTier) : Trinket(
+    Item.Settings().group(creativeTab).maxCount(1)
+        .maxDamage(tier.fuelStorage)
+),
     AmountRepairable {
     val id = Identifier(MODID, "jetpack_${tier.toString().toLowerCase()}")
     override fun appendTooltip(
@@ -305,7 +309,8 @@ typealias HoverAlgorithm = HoverAlgorithmInput.() -> Boolean // Returns whether 
 enum class JetpackTier(private val category: JetpackCategory) : StringIdentifiable {
     IRON(config.jetpacks.iron),
     GOLD(config.jetpacks.gold),
-    DIAMOND(config.jetpacks.diamond);
+    DIAMOND(config.jetpacks.diamond),
+    NETHERITE(config.jetpacks.netherite);
 
     override fun asString() = toString().toLowerCase()
 

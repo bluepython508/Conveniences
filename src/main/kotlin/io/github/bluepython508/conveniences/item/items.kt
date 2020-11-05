@@ -3,35 +3,29 @@ package io.github.bluepython508.conveniences.item
 import io.github.bluepython508.conveniences.MODID
 import io.github.bluepython508.conveniences.register
 import net.fabricmc.fabric.api.client.itemgroup.FabricItemGroupBuilder
-import net.minecraft.item.Item
 import net.minecraft.item.ItemGroup
 import net.minecraft.item.ItemStack
 import net.minecraft.util.Identifier
 import net.minecraft.util.registry.Registry
 
-val creativeTab: ItemGroup = FabricItemGroupBuilder.build(Identifier(MODID, "tab")) { ItemStack(
-    itemIronJetpack
-) }
+val creativeTab: ItemGroup = FabricItemGroupBuilder.build(Identifier(MODID, "tab")) {
+    ItemStack(
+        itemIronJetpack
+    )
+}
 
-val itemIronJetpack = ItemJetpack(
-    JetpackTier.IRON,
-    Item.Settings().group(creativeTab).maxCount(1)
-)
-val itemGoldJetpack = ItemJetpack(
-    JetpackTier.GOLD,
-    Item.Settings().group(creativeTab).maxCount(1)
-)
-val itemDiamondJetpack = ItemJetpack(
-    JetpackTier.DIAMOND,
-    Item.Settings().group(creativeTab).maxCount(1)
-)
+val itemIronJetpack = ItemJetpack(JetpackTier.IRON)
+val itemGoldJetpack = ItemJetpack(JetpackTier.GOLD)
+val itemDiamondJetpack = ItemJetpack(JetpackTier.DIAMOND)
+val itemNetheriteJetpack = ItemJetpack(JetpackTier.NETHERITE)
 
-val jetpacks = listOf(itemIronJetpack, itemGoldJetpack, itemDiamondJetpack)
+val jetpacks = listOf(itemIronJetpack, itemGoldJetpack, itemDiamondJetpack, itemNetheriteJetpack)
 
 val itemIronHook = ItemHook(HookTier.IRON)
 val itemGoldHook = ItemHook(HookTier.GOLD)
 val itemDiamondHook = ItemHook(HookTier.DIAMOND)
-val hooks = listOf(itemIronHook, itemGoldHook, itemDiamondHook)
+val itemNetheriteHook = ItemHook(HookTier.NETHERITE)
+val hooks = listOf(itemIronHook, itemGoldHook, itemDiamondHook, itemNetheriteHook)
 
 val launchers = listOf(ItemEnderLauncher, *hooks.toTypedArray())
 
@@ -56,8 +50,8 @@ fun registerItems() {
     )
     for (hook in hooks) {
         Registry.ITEM.register(
-                hook.id,
-                hook
+            hook.id,
+            hook
         )
     }
     Registry.ITEM.register(

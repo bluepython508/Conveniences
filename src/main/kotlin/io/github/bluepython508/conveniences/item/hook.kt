@@ -107,7 +107,8 @@ class ItemHook(private val tier: HookTier): Launcher(Settings().group(creativeTa
 enum class HookTier(private val category: HookCategory) {
     IRON(config.hooks.iron),
     GOLD(config.hooks.gold),
-    DIAMOND(config.hooks.diamond);
+    DIAMOND(config.hooks.diamond),
+    NETHERITE(config.hooks.netherite);
 
     val shootSpeed: Double
         get() = category.shootSpeed
