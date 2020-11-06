@@ -68,11 +68,11 @@ abstract class RadialScreen(private val key: KeyBinding, private val renderHandS
         return 360 - ((atan2(mouseXrel, mouseYrel).toDegrees() + 360 - 90) % 360)
     }
 
-    private fun getMouseSlot(mouseX: Double, mouseY: Double, mouseDistanceThreshold: Int = 60): Int {
+    private fun getMouseSlot(mouseX: Double, mouseY: Double): Int {
         val mouseXrel = mouseX - (width / 2)
         val mouseYrel = mouseY - (height / 2)
         val mouseDistance = hypot(mouseXrel, mouseYrel)
-        if (mouseDistance < mouseDistanceThreshold) return -1
+        if (mouseDistance < 0.2 * minOf(width, height)) return -1
         return (ceil((getMouseAngle(mouseX, mouseY) / 360) * slotsRenderNumber).toInt() - 1).takeUnless { it >= slots } ?: -1
     }
 
