@@ -10,13 +10,14 @@
     "StopElytraMixin"
   ],
   "client": [
+    "BackgroundRendererFogMixin",
+    "ConfigEntryFieldNameSetter",
     "ElytraKeybindMixin",
     "GlowColorMixin",
     "NetherFogMixin",
     "TrinketHudMixin",
     "ZoomMixin",
-    "ZoomMouseSensitivityMixin",
-    "ConfigEntryFieldNameSetter"
+    "ZoomMouseSensitivityMixin"
   ],
   "injectors": {
     "defaultRequire": 1

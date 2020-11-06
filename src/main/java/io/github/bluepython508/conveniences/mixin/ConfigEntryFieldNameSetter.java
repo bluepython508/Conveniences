@@ -7,9 +7,9 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(AbstractConfigListEntry.class)
 public interface ConfigEntryFieldNameSetter {
-    @Accessor("fieldName")
+    @Accessor(value = "fieldName", remap = false)
     void setFieldName(Text fieldName);
 
-    @Accessor("fieldName")
+    @Accessor(value = "fieldName", remap = false)
     Text getFieldName();
 }
