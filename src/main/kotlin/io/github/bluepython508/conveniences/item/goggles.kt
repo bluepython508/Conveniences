@@ -21,6 +21,7 @@ import net.fabricmc.fabric.api.network.ServerSidePacketRegistry
 import net.minecraft.block.Block
 import net.minecraft.block.Blocks
 import net.minecraft.client.MinecraftClient
+import net.minecraft.client.item.TooltipContext
 import net.minecraft.client.network.AbstractClientPlayerEntity
 import net.minecraft.client.render.RenderLayers
 import net.minecraft.client.render.Tessellator
@@ -37,9 +38,11 @@ import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.PacketByteBuf
+import net.minecraft.text.Text
 import net.minecraft.text.TranslatableText
 import net.minecraft.util.Identifier
 import net.minecraft.util.registry.Registry
+import net.minecraft.world.World
 
 object ItemGoggles : Trinket(Settings().maxCount(1).group(creativeTab)) {
     val id = Identifier(MODID, "goggles")
@@ -329,16 +332,56 @@ object NightVisionLens : Lens() {
     override fun onDisableServer(player: PlayerEntity) {
         player.removeStatusEffect(StatusEffects.NIGHT_VISION)
     }
+
+    override fun appendTooltip(
+        stack: ItemStack,
+        world: World?,
+        tooltip: MutableList<Text>,
+        context: TooltipContext
+    ) {
+        super.appendTooltip(stack, world, tooltip, context)
+        tooltip.add(TranslatableText("conveniences.lens.nightvision_tooltip"))
+    }
 }
 
 object MobHighlightLens : Lens() {
     override val id = Identifier(MODID, "mob_highlight_lens")
+
+    override fun appendTooltip(
+        stack: ItemStack,
+        world: World?,
+        tooltip: MutableList<Text>,
+        context: TooltipContext
+    ) {
+        super.appendTooltip(stack, world, tooltip, context)
+        tooltip.add(TranslatableText("conveniences.lens.mobhighlight_tooltip"))
+    }
 }
 
 object ZoomLens : Lens() {
     override val id = Identifier(MODID, "zoom_lens")
+
+    override fun appendTooltip(
+        stack: ItemStack,
+        world: World?,
+        tooltip: MutableList<Text>,
+        context: TooltipContext
+    ) {
+        super.appendTooltip(stack, world, tooltip, context)
+        tooltip.add(TranslatableText("conveniences.lens.zoom_tooltip"))
+    }
 }
 
 object FogClearingLens : Lens() {
     override val id = Identifier(MODID, "fog_lens")
+
+    override fun appendTooltip(
+        stack: ItemStack,
+        world: World?,
+        tooltip: MutableList<Text>,
+        context: TooltipContext
+    ) {
+        super.appendTooltip(stack, world, tooltip, context)
+        tooltip.add(TranslatableText("conveniences.lens.fog_tooltip"))
+    }
 }

@@ -1,6 +1,6 @@
 package io.github.bluepython508.conveniences.mixin;
 
-import io.github.bluepython508.conveniences.item.ItemGogglesKt;
+import io.github.bluepython508.conveniences.item.GogglesKt;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.screen.ForgingScreenHandler;
@@ -38,7 +38,7 @@ public abstract class LensRecipeMixin extends ForgingScreenHandler {
             cancellable = true
     )
     public void updateResult(CallbackInfo ci) {
-        if (ItemGogglesKt.addLens(input, output)) {
+        if (GogglesKt.addLens(input, output)) {
             ci.cancel();
         }
     }

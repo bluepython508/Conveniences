@@ -65,5 +65,9 @@
   "conveniences.jetpack.hovering": "Hovering",
   "conveniences.jetpack.cannot_hover": "Cannot Hover!",
   "conveniences.true": "True",
-  "conveniences.false": "False"
+  "conveniences.false": "False",
+  "conveniences.lens.nightvision_tooltip": "Grants night vision",
+  "conveniences.lens.mobhighlight_tooltip": "Highlights entities and gives a red overlay when enemies are near",
+  "conveniences.lens.zoom_tooltip": "Zooms in and out",
+  "conveniences.lens.fog_tooltip": "Clears fog"
 }
