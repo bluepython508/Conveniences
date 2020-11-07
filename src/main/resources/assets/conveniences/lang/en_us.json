@@ -69,5 +69,6 @@
   "conveniences.lens.nightvision_tooltip": "Grants night vision",
   "conveniences.lens.mobhighlight_tooltip": "Highlights entities and gives a red overlay when enemies are near",
   "conveniences.lens.zoom_tooltip": "Zooms in and out",
-  "conveniences.lens.fog_tooltip": "Clears fog"
+  "conveniences.lens.fog_tooltip": "Clears fog",
+  "conveniences.goggles.tooltip": "Add lenses in the smithing table"
 }

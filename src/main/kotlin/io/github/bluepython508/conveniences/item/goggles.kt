@@ -48,6 +48,15 @@ object ItemGoggles : Trinket(Settings().maxCount(1).group(creativeTab)) {
     val id = Identifier(MODID, "goggles")
     override fun canWearInSlot(group: String, slot: String): Boolean = group == SlotGroups.HEAD && slot == Slots.MASK
 
+    override fun appendTooltip(
+        stack: ItemStack,
+        world: World?,
+        tooltip: MutableList<Text>,
+        context: TooltipContext?
+    ) {
+        tooltip.add(TranslatableText("conveniences.goggles.tooltip"))
+    }
+
     override fun tick(player: PlayerEntity, stack: ItemStack) {
         val component = stack.goggleComponent ?: return
         for (lens in component.lenses) {
