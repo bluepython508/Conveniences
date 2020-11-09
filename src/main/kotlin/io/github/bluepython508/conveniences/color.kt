@@ -1,3 +1,5 @@
+@file:Suppress("FunctionName")
+
 package io.github.bluepython508.conveniences
 
 import net.minecraft.client.render.VertexConsumer
@@ -28,6 +30,6 @@ val ColourAlpha.green
 
 fun ColourAlpha(red: Int, blue: Int, green: Int, alpha: Int = 255): ColourAlpha = Colour(red, blue, green) to alpha
 
-fun VertexConsumer.color(colour: ColourAlpha) = color(colour.red, colour.blue, colour.green, colour.alpha)
+fun VertexConsumer.color(colour: ColourAlpha): VertexConsumer = color(colour.red, colour.blue, colour.green, colour.alpha)
 
 fun ColourAlpha.toInt(): Int = red shl 24 + blue shl 16 + green shl 8 + alpha

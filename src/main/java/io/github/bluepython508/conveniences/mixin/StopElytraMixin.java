@@ -6,6 +6,7 @@ import net.minecraft.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
+@SuppressWarnings("SameParameterValue")
 @Mixin(Entity.class)
 public abstract class StopElytraMixin implements StopElytra {
     @Shadow protected abstract void setFlag(int flag, boolean state);

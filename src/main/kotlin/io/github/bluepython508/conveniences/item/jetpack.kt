@@ -26,7 +26,6 @@ import net.minecraft.client.render.VertexConsumerProvider
 import net.minecraft.client.render.entity.model.PlayerEntityModel
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.PacketByteBuf
@@ -49,7 +48,7 @@ import kotlin.math.sin
 
 
 class ItemJetpack(val tier: JetpackTier) : Trinket(
-    Item.Settings().group(creativeTab).maxCount(1)
+    Settings().group(creativeTab).maxCount(1)
         .maxDamage(tier.fuelStorage)
 ),
     AmountRepairable {
@@ -173,22 +172,21 @@ class ItemJetpack(val tier: JetpackTier) : Trinket(
                 val jetpackComponent = stackLoaded.jetpackComponent!!
                 jetpackComponent.hoverHeight = jetpackComponent.hoverHeight - (jetpackComponent.tier.acceleration / 5)
             }
-            jetpackEnableKeyID -> toggleEnabled(player, stackLoaded)
+            jetpackEnableKeyID -> toggleEnabled(stackLoaded)
             jetpackHoverKeyID -> toggleHover(player, stackLoaded)
         }
     }
 
-    private fun toggleEnabled(player: PlayerEntity, stack: ItemStack) {
-        val jetpackComponent = player.trinketsComponent.getStack(SlotGroups.CHEST, Slots.BACKPACK).jetpackComponent!!
+    private fun toggleEnabled(stack: ItemStack) {
+        val jetpackComponent = stack.jetpackComponent!!
         jetpackComponent.enabled = !jetpackComponent.enabled
     }
 
     private fun toggleHover(player: PlayerEntity, stack: ItemStack) {
         val jetpackComponent = stack.jetpackComponent!!
         jetpackComponent.hovering =
-            !jetpackComponent.hovering // JetpackComponentNBT setter handles non-hoverable jetpacks, so we don't need to here
+            !jetpackComponent.hovering // JetpackComponentNBT setter handles non-hovering jetpacks, so we don't need to here
         if (jetpackComponent.hovering) jetpackComponent.hoverHeight = player.y
-        player.trinketsComponent.sync()
     }
 
     private fun flyServer(player: PlayerEntity, stack: ItemStack) {
@@ -410,7 +408,7 @@ object JetpackFakeBlock : Block(Settings.copy(Blocks.STONE)) {
     }
 }
 
-val JETPACK_PARTICLE_PACKET = Identifier(MODID, "jetpackparticles")
+val JETPACK_PARTICLE_PACKET = Identifier(MODID, "jetpack_particles")
 fun registerJetpackParticlePacket() {
     ClientSidePacketRegistry.INSTANCE.register(JETPACK_PARTICLE_PACKET) { ctx: PacketContext, data: PacketByteBuf ->
         val playerX = data.readDouble()

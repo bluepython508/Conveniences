@@ -220,7 +220,7 @@ fun addLens(input: Inventory, output: Inventory): Boolean {
     if (goggles.item == ItemGoggles
         && lens.item is Lens
         && (goggles.goggleComponent!!.lenses[(lens.item as Lens).id] ?: LensState.NOT_INCLUDED == LensState.NOT_INCLUDED)) {
-        val goggles = goggles.copy();
+        val goggles = goggles.copy()
         goggles.goggleComponent!!.lenses[(lens.item as Lens).id] = LensState.ENABLED
         output.setStack(0, goggles)
         return true
