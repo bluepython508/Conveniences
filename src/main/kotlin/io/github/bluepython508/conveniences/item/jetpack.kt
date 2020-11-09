@@ -30,7 +30,6 @@ import net.minecraft.item.ItemStack
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.PacketByteBuf
 import net.minecraft.particle.ParticleTypes
-import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.state.StateManager
 import net.minecraft.state.property.EnumProperty
 import net.minecraft.text.LiteralText
@@ -139,18 +138,14 @@ class ItemJetpack(val tier: JetpackTier) : Trinket(
     override fun tick(player: PlayerEntity, stack: ItemStack) {
         val jetpackComponent = stack.jetpackComponent!!
         if (player.isFallFlying) jetpackComponent.hovering = false
-        if (jetpackComponent.hovering) {
+        if (jetpackComponent.hovering && player.world.isClient) {
             val input =
                 HoverAlgorithmInput(player.y, player.velocity.y, jetpackComponent.hoverHeight, jetpackComponent.tier)
-            val fire = jetpackComponent.tier.hoverAlgorithm(input)
-            if (fire) {
-                if (player.world.isClient) {
-                    thrustClient(player, stack)
-                } else {
-                    thrustServer(player, stack)
-                }
+            if (jetpackComponent.tier.hoverAlgorithm(input)) {
+                thrustClient(player, stack)
             }
         }
+        player.trinketsComponent.sync()
     }
 
     override fun onKeybindClient(player: PlayerEntity, stack: ItemStack, keybind: Identifier) {
@@ -161,19 +156,8 @@ class ItemJetpack(val tier: JetpackTier) : Trinket(
                 val jetpackComponent = stackLoaded.jetpackComponent!!
                 jetpackComponent.hoverHeight = jetpackComponent.hoverHeight - (jetpackComponent.tier.acceleration / 5)
             }
-        }
-    }
-
-    override fun onKeybindServer(player: PlayerEntity, stack: ItemStack, keybind: Identifier) {
-        val stackLoaded = player.trinketsComponent.getStack(SlotGroups.CHEST, Slots.BACKPACK)
-        when (keybind) {
-            jetpackAscendKeyID -> flyServer(player, stackLoaded)
-            jetpackDescendKeyID -> {
-                val jetpackComponent = stackLoaded.jetpackComponent!!
-                jetpackComponent.hoverHeight = jetpackComponent.hoverHeight - (jetpackComponent.tier.acceleration / 5)
-            }
-            jetpackEnableKeyID -> toggleEnabled(stackLoaded)
             jetpackHoverKeyID -> toggleHover(player, stackLoaded)
+            jetpackEnableKeyID -> toggleEnabled(stackLoaded)
         }
     }
 
@@ -189,25 +173,12 @@ class ItemJetpack(val tier: JetpackTier) : Trinket(
         if (jetpackComponent.hovering) jetpackComponent.hoverHeight = player.y
     }
 
-    private fun flyServer(player: PlayerEntity, stack: ItemStack) {
-        val jetpackComponent = stack.jetpackComponent!!
-        if (!jetpackComponent.enabled) return
-        if (jetpackComponent.hovering && jetpackComponent.tier.canHover) {
-            jetpackComponent.hoverHeight += jetpackComponent.tier.acceleration / 5
-            return
-        }
-        if (player.isFallFlying) {
-            glideThrustServer(player, stack)
-        } else {
-            thrustServer(player, stack)
-        }
-    }
-
     private fun flyClient(player: PlayerEntity, stack: ItemStack) {
         val jetpackComponent = stack.jetpackComponent!!
         if (!jetpackComponent.enabled) return
         if (jetpackComponent.hovering) {
-            jetpackComponent.hoverHeight += jetpackComponent.tier.acceleration / 5; return
+            jetpackComponent.hoverHeight += jetpackComponent.tier.acceleration / 5
+            return
         }
         if (player.isFallFlying) {
             glideThrustClient(player, stack)
@@ -216,8 +187,22 @@ class ItemJetpack(val tier: JetpackTier) : Trinket(
         }
     }
 
-    private fun thrustServer(player: PlayerEntity, stack: ItemStack) {
-        if (!useFuel(player as ServerPlayerEntity, stack)) return
+    private fun useFuel(player: PlayerEntity, stack: ItemStack): Boolean {
+        if (player.isCreative) return true // Creative mode players shouldn't use fuel
+        if (stack.damage == stack.maxDamage - 1) return false
+        stack.damage += 1
+        return true
+    }
+
+    override fun canRepair(stack: ItemStack, ingredient: ItemStack): Boolean =
+        stack.damage != 0 && FuelRegistry.INSTANCE[ingredient.item]?.let { it > 0 } == true
+
+    override fun getRepairAmount(toRepair: ItemStack, repairFrom: ItemStack): Int =
+        (FuelRegistry.INSTANCE[repairFrom.item] / (toRepair.jetpackComponent?.tier?.furnaceFuelFlightRatio
+            ?: 1.0)).roundToInt()
+
+    internal fun thrustServer(player: PlayerEntity, stack: ItemStack) {
+        if (!useFuel(player, stack)) return
         player.fallDistance = 0f
         val data = PacketByteBuf(Unpooled.buffer())
         data.writeDouble(player.x)
@@ -233,22 +218,8 @@ class ItemJetpack(val tier: JetpackTier) : Trinket(
         }
     }
 
-    private fun useFuel(player: ServerPlayerEntity, stack: ItemStack): Boolean {
-        if (player.isCreative) return true // Creative mode players shouldn't use fuel
-        if (stack.damage == stack.maxDamage - 1) return false
-        stack.damage += 1
-        return true
-    }
-
-    override fun canRepair(stack: ItemStack, ingredient: ItemStack): Boolean =
-        stack.damage != 0 && FuelRegistry.INSTANCE[ingredient.item]?.let { it > 0 } == true
-
-    override fun getRepairAmount(toRepair: ItemStack, repairFrom: ItemStack): Int =
-        (FuelRegistry.INSTANCE[repairFrom.item] / (toRepair.jetpackComponent?.tier?.furnaceFuelFlightRatio
-            ?: 1.0)).roundToInt()
-
-    private fun glideThrustServer(player: PlayerEntity, stack: ItemStack) {
-        if (!useFuel(player as ServerPlayerEntity, stack)) return
+    internal fun glideThrustServer(player: PlayerEntity, stack: ItemStack) {
+        if (!useFuel(player, stack)) return
         val data = PacketByteBuf(Unpooled.buffer())
         data.writeDouble(player.x)
         data.writeDouble(player.y)
@@ -265,6 +236,9 @@ class ItemJetpack(val tier: JetpackTier) : Trinket(
 
     private fun thrustClient(player: PlayerEntity, stack: ItemStack) {
         if (stack.damage == (stack.maxDamage - 1)) return
+        val data = PacketByteBuf(Unpooled.buffer())
+        data.writeBoolean(false)
+        ClientSidePacketRegistry.INSTANCE.sendToServer(JETPACK_THRUST_PACKET, data)
         player.velocity = player.velocity.add(
             0.0,
             ((tier.maxSpeed - player.velocity.y) / tier.maxSpeed) * tier.acceleration / 10,
@@ -277,6 +251,9 @@ class ItemJetpack(val tier: JetpackTier) : Trinket(
 
     private fun glideThrustClient(player: PlayerEntity, stack: ItemStack) {
         if (stack.damage == (stack.maxDamage - 1)) return
+        val data = PacketByteBuf(Unpooled.buffer())
+        data.writeBoolean(true)
+        ClientSidePacketRegistry.INSTANCE.sendToServer(JETPACK_THRUST_PACKET, data)
         val vec3d = player.rotationVector // Copied from FireworkEntity
         val vec3d2 = player.velocity
         player.velocity = vec3d2.add(
@@ -293,11 +270,6 @@ class ItemJetpack(val tier: JetpackTier) : Trinket(
             player.random
         )
     }
-
-//    override fun use(world: World, user: PlayerEntity, hand: Hand): TypedActionResult<ItemStack> {
-//        toggleEnabled(user, user.getStackInHand(hand));
-//        return TypedActionResult.success(user.getStackInHand(hand))
-//    }
 }
 
 data class HoverAlgorithmInput(val playerY: Double, val playerVelY: Double, val targetY: Double, val tier: JetpackTier)
@@ -409,7 +381,8 @@ object JetpackFakeBlock : Block(Settings.copy(Blocks.STONE)) {
 }
 
 val JETPACK_PARTICLE_PACKET = Identifier(MODID, "jetpack_particles")
-fun registerJetpackParticlePacket() {
+val JETPACK_THRUST_PACKET = Identifier(MODID, "jetpack_thrust")
+fun registerJetpackPackets() {
     ClientSidePacketRegistry.INSTANCE.register(JETPACK_PARTICLE_PACKET) { ctx: PacketContext, data: PacketByteBuf ->
         val playerX = data.readDouble()
         val playerY = data.readDouble()
@@ -421,6 +394,20 @@ fun registerJetpackParticlePacket() {
         val v = Vec3d(vx, vy, vz)
         ctx.taskQueue.execute {
             jetpackParticles(playerX, playerY, playerZ, yaw, v, ctx.player.random)
+        }
+    }
+    ServerSidePacketRegistry.INSTANCE.register(JETPACK_THRUST_PACKET) { ctx: PacketContext, data: PacketByteBuf ->
+        val isGlide = data.readBoolean()
+        val player = ctx.player
+        val stack = player.trinketsComponent.getStack(SlotGroups.CHEST, Slots.BACKPACK)
+        val item = (stack.item as ItemJetpack)
+        ctx.taskQueue.execute {
+            if (isGlide) {
+                item.glideThrustServer(player, stack)
+            } else {
+                item.thrustServer(player, stack)
+            }
+            player.trinketsComponent.sync()
         }
     }
 }

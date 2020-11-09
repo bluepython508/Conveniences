@@ -14,6 +14,7 @@ abstract class Trinket(settings: Settings): TrinketItem(settings) {
         } else {
             onEquipServer(player, stack)
         }
+        player.trinketsComponent.sync()
     }
 
     override fun onUnequip(player: PlayerEntity, stack: ItemStack) {
@@ -22,6 +23,7 @@ abstract class Trinket(settings: Settings): TrinketItem(settings) {
         } else {
             onUnequipServer(player, stack)
         }
+        player.trinketsComponent.sync()
     }
 
     open fun onEquipServer(player: PlayerEntity, stack: ItemStack) {}
@@ -34,6 +36,7 @@ abstract class Trinket(settings: Settings): TrinketItem(settings) {
     fun onKeybind(player: PlayerEntity, stack: ItemStack, keybind: Identifier) {
         onKeybindClient(player, stack, keybind)
         sendKeybind(keybind, stack)
+        player.trinketsComponent.sync()
     }
     open fun onKeybindClient(player: PlayerEntity, stack: ItemStack, keybind: Identifier) {}
     open fun onKeybindServer(player: PlayerEntity, stack: ItemStack, keybind: Identifier) {}

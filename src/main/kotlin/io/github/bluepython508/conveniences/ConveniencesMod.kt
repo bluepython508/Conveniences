@@ -114,7 +114,7 @@ val zoomOut: KeyBinding by lazy { KeyBinding("key.conveniences.zoom_out", InputU
 
 fun clientInit() {
     registerLangKeyHandler()
-    registerJetpackParticlePacket()
+    registerJetpackPackets()
     registerHookParticlePacket()
     registerGoggleRenderEvents()
     KeyBindingHelper.registerKeyBinding(triggerElytra)
