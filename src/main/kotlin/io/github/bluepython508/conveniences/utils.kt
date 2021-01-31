@@ -57,6 +57,14 @@ fun Entity.setPos(pos: Vec3d) {
 
 fun File.getChild(name: String) = File(this, name)
 
-inline infix fun <T: Any, U> T?.pipeNullable(x: (T) -> U): U? {
+inline infix fun <T : Any, U> T?.pipeNullable(x: (T) -> U): U? {
     return x(this ?: return null)
+}
+
+fun <T, U> T.tryLet(x: (T) -> U?): U? {
+    return try {
+        x(this)
+    } catch (e: Throwable) {
+        null
+    }
 }

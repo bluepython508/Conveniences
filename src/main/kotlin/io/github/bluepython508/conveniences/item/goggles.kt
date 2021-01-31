@@ -3,21 +3,15 @@ package io.github.bluepython508.conveniences.item
 import com.mojang.blaze3d.systems.RenderSystem
 import dev.emi.trinkets.api.SlotGroups
 import dev.emi.trinkets.api.Slots
+import dev.onyxstudios.cca.api.v3.item.ItemComponent
 import io.github.bluepython508.conveniences.*
-import io.netty.buffer.Unpooled
-import nerdhub.cardinal.components.api.component.Component
-import nerdhub.cardinal.components.api.component.ComponentContainer
-import nerdhub.cardinal.components.api.component.ComponentProvider
-import nerdhub.cardinal.components.api.component.extension.CopyableComponent
-import nerdhub.cardinal.components.api.event.ItemComponentCallback
-import nerdhub.cardinal.components.api.util.ItemComponent
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
 import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback
-import net.fabricmc.fabric.api.network.ClientSidePacketRegistry
-import net.fabricmc.fabric.api.network.PacketContext
-import net.fabricmc.fabric.api.network.ServerSidePacketRegistry
+import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.minecraft.block.Block
 import net.minecraft.block.Blocks
 import net.minecraft.client.MinecraftClient
@@ -36,8 +30,6 @@ import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.inventory.Inventory
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
-import net.minecraft.nbt.CompoundTag
-import net.minecraft.network.PacketByteBuf
 import net.minecraft.text.Text
 import net.minecraft.text.TranslatableText
 import net.minecraft.util.Identifier
@@ -60,11 +52,11 @@ object ItemGoggles : Trinket(Settings().maxCount(1).group(creativeTab)) {
     override fun tick(player: PlayerEntity, stack: ItemStack) {
         val component = stack.goggleComponent ?: return
         for (lens in component.lenses) {
-            if (lens.value == LensState.ENABLED) {
+            if (lens.second == LensState.ENABLED) {
                 if (player.world.isClient) {
-                    lenses[lens.key]?.tickClient(player)
+                    lenses[lens.first]?.tickClient(player)
                 } else {
-                    lenses[lens.key]?.tickServer(player)
+                    lenses[lens.first]?.tickServer(player)
                 }
             }
         }
@@ -109,7 +101,11 @@ object ItemGoggles : Trinket(Settings().maxCount(1).group(creativeTab)) {
 }
 
 @Environment(EnvType.CLIENT)
-object GogglesRadialMenu : RadialScreen(gogglesMenuKey, renderHandSlot = false, menuTitle = TranslatableText("conveniences.goggles.menu.title")) {
+object GogglesRadialMenu : RadialScreen(
+    gogglesMenuKey,
+    renderHandSlot = false,
+    menuTitle = TranslatableText("conveniences.goggles.menu.title")
+) {
     override fun onTrigger(slot: Int) {
         val component = MinecraftClient.getInstance().player?.trinketsComponent?.getStack(
             SlotGroups.HEAD,
@@ -126,8 +122,8 @@ object GogglesRadialMenu : RadialScreen(gogglesMenuKey, renderHandSlot = false, 
             }
         }
         call()
-        ClientSidePacketRegistry.INSTANCE.sendToServer(
-            GOGGLE_LENS_PACKET_ID, PacketByteBuf(Unpooled.buffer()).writeIdentifier(
+        ClientPlayNetworking.send(
+            GOGGLE_LENS_PACKET_ID, PacketByteBufs.create().writeIdentifier(
                 (getStackInSlot(slot).item as? Lens)?.id
                     ?: return
             )
@@ -141,7 +137,7 @@ object GogglesRadialMenu : RadialScreen(gogglesMenuKey, renderHandSlot = false, 
         )?.goggleComponent
             ?: return ItemStack.EMPTY
         val lens = getID(slot) ?: return ItemStack.EMPTY
-        return ItemStack(lenses[lens]).takeIf { component.lenses[lens] ?: LensState.NOT_INCLUDED != LensState.NOT_INCLUDED }
+        return ItemStack(lenses[lens]).takeIf { component.lenses[lens] != LensState.NOT_INCLUDED }
             ?: ItemStack.EMPTY
     }
 
@@ -160,7 +156,7 @@ object GogglesRadialMenu : RadialScreen(gogglesMenuKey, renderHandSlot = false, 
             SlotGroups.HEAD,
             Slots.MASK
         )?.goggleComponent ?: return UNUSED_COLOR
-        if (component.lenses[lens.id] ?: LensState.NOT_INCLUDED == LensState.NOT_INCLUDED) return ColourAlpha(
+        if (component.lenses[lens.id] == LensState.NOT_INCLUDED) return ColourAlpha(
             10,
             10,
             10,
@@ -184,43 +180,55 @@ enum class LensState {
     }
 }
 
-interface GoggleComponent : ItemComponent<GoggleComponent> {
-    var lenses: MutableMap<Identifier, LensState>
+class GoggleComponent(stack: ItemStack) : ItemComponent(stack, GOGGLES_COMPONENT_KEY) {
+    var lenses: LensMap = LensMap()
 
-    override fun toTag(tag: CompoundTag): CompoundTag {
-        val lensTag = CompoundTag()
-        for (entry in lenses) {
-            lensTag.putString(entry.key.toString(), entry.value.toString())
+    inner class LensMap {
+        operator fun get(key: Identifier): LensState {
+            return when (getCompound("lenses").getString(key.toString())) {
+                "enabled" -> LensState.ENABLED
+                "disabled" -> LensState.DISABLED
+                else -> LensState.NOT_INCLUDED
+            }
         }
-        tag.put("lenses", lensTag)
-        return tag
-    }
 
-    override fun fromTag(tag: CompoundTag) {
-        val lensTag = tag.getCompound("lenses")
-        for (entry in lensTag.keys.map { Identifier.tryParse(it) to LensState.valueOf(lensTag.getString(it)) }) {
-            lenses[entry.first ?: continue] = entry.second
+        operator fun set(key: Identifier, value: LensState) {
+            val compound = getCompound("lenses")
+            compound.putString(
+                key.toString(), when (value) {
+                    LensState.ENABLED -> "enabled"
+                    LensState.DISABLED -> "disabled"
+                    LensState.NOT_INCLUDED -> {
+                        compound.remove(key.toString())
+                        orCreateRootTag.put("lenses", compound)
+                        return
+                    }
+                }
+            )
+            orCreateRootTag.put("lenses", compound)
         }
+
+        operator fun iterator(): Iterator<Pair<Identifier, LensState>> =
+            getCompound("lenses").keys.map { val id = Identifier.tryParse(it) ?: return@map null; Pair(id, get(id)) }
+                .filterNotNull().iterator()
     }
 
-    override fun isComponentEqual(other: Component): Boolean =
-        other is GoggleComponent && (other.lenses.map { lenses[it.key] == it.value }.takeUnless { it.isEmpty() }
-            ?.reduce(Boolean::and) == true)
-
-
-    class Impl : GoggleComponent {
-        override var lenses: MutableMap<Identifier, LensState> = mutableMapOf()
-    }
 
 }
+
+val ItemStack.goggleComponent: GoggleComponent?
+    get() = GOGGLES_COMPONENT_KEY.getNullable(this)
+
 
 fun addLens(input: Inventory, output: Inventory): Boolean {
     val goggles = input.getStack(0)
     val lens = input.getStack(1)
+    val lensItem = lens.item as? Lens
     if (goggles.item == ItemGoggles
-        && lens.item is Lens
-        && (goggles.goggleComponent!!.lenses[(lens.item as Lens).id] ?: LensState.NOT_INCLUDED == LensState.NOT_INCLUDED)) {
-        val goggles = goggles.copy()
+        && lensItem != null
+        && (goggles.goggleComponent!!.lenses[lensItem.id] == LensState.NOT_INCLUDED)
+    ) {
+        @Suppress("NAME_SHADOWING") val goggles = goggles.copy()
         goggles.goggleComponent!!.lenses[(lens.item as Lens).id] = LensState.ENABLED
         output.setStack(0, goggles)
         return true
@@ -228,31 +236,19 @@ fun addLens(input: Inventory, output: Inventory): Boolean {
     return false
 }
 
-fun registerGoggleComponent() {
-    ItemComponentCallback.event(ItemGoggles)
-        .register(ItemComponentCallback { _: ItemStack, componentContainer: ComponentContainer<CopyableComponent<*>> ->
-            componentContainer.putIfAbsent(GOGGLES_COMPONENT_TYPE, GoggleComponent.Impl())
-        })
-}
-
-val ItemStack.goggleComponent: GoggleComponent?
-    get() = ComponentProvider.fromItemStack(this).getComponent(GOGGLES_COMPONENT_TYPE)
-
-
 val GOGGLE_LENS_PACKET_ID = Identifier(MODID, "goggle_lens")
 
 fun registerGoggleLensPacket() {
-    ServerSidePacketRegistry.INSTANCE.register(GOGGLE_LENS_PACKET_ID) { ctx: PacketContext, data: PacketByteBuf ->
+    ServerPlayNetworking.registerGlobalReceiver(GOGGLE_LENS_PACKET_ID) { server, player, _, data, _ ->
         val id = data.readIdentifier()
-        ctx.taskQueue.execute {
-            val component = ctx.player.trinketsComponent.getStack(SlotGroups.HEAD, Slots.MASK).goggleComponent
+        server.execute {
+            val component = player.trinketsComponent.getStack(SlotGroups.HEAD, Slots.MASK).goggleComponent
                 ?: return@execute
             val lens = lenses[id] ?: return@execute
-            component.lenses[id] = component.lenses[id]?.invert()
-                ?: LensState.NOT_INCLUDED
-            when (component.lenses[id] ?: return@execute) {
-                LensState.ENABLED -> lens.onEnableServer(ctx.player)
-                LensState.DISABLED -> lens.onDisableServer(ctx.player)
+            component.lenses[id] = component.lenses[id].invert()
+            when (component.lenses[id]) {
+                LensState.ENABLED -> lens.onEnableServer(player)
+                LensState.DISABLED -> lens.onDisableServer(player)
                 LensState.NOT_INCLUDED -> return@execute
             }
         }
@@ -275,8 +271,8 @@ fun registerLenses() {
     lenses.forEach { Registry.ITEM.register(it.key, it.value) }
 }
 
-fun PlayerEntity?.hasLensEnabled(lens: Lens): Boolean =
-    this?.trinketsComponent?.getStack(
+fun PlayerEntity.hasLensEnabled(lens: Lens): Boolean =
+    this.trinketsComponent.getStack(
         SlotGroups.HEAD,
         Slots.MASK
     )?.goggleComponent?.lenses?.get(lens.id) == LensState.ENABLED

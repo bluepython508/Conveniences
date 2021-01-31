@@ -1,27 +1,21 @@
 package io.github.bluepython508.conveniences.item
 
 import dev.emi.trinkets.api.SlotGroups
+import dev.onyxstudios.cca.api.v3.item.ItemComponent
 import io.github.bluepython508.conveniences.*
-import io.netty.buffer.Unpooled
-import nerdhub.cardinal.components.api.component.Component
-import nerdhub.cardinal.components.api.component.ComponentProvider
-import nerdhub.cardinal.components.api.event.ItemComponentCallback
-import nerdhub.cardinal.components.api.util.ItemComponent
-import net.fabricmc.fabric.api.network.ClientSidePacketRegistry
-import net.fabricmc.fabric.api.network.PacketContext
-import net.fabricmc.fabric.api.network.ServerSidePacketRegistry
-import net.fabricmc.fabric.api.server.PlayerStream
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
+import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
+import net.fabricmc.fabric.api.networking.v1.PlayerLookup
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.minecraft.client.MinecraftClient
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
-import net.minecraft.nbt.CompoundTag
-import net.minecraft.network.PacketByteBuf
 import net.minecraft.particle.ParticleTypes
 import net.minecraft.util.Identifier
 import net.minecraft.util.hit.HitResult
 import net.minecraft.util.math.Vec3d
 
-class ItemHook(private val tier: HookTier): Launcher(Settings().group(creativeTab).maxCount(1)) {
+class ItemHook(val tier: HookTier): Launcher(Settings().group(creativeTab).maxCount(1)) {
     val id = Identifier(MODID, "hook_$tier")
     @Suppress("NAME_SHADOWING")
     override fun activate(player: PlayerEntity, stack: ItemStack, hitResult: HitResult) {
@@ -48,23 +42,23 @@ class ItemHook(private val tier: HookTier): Launcher(Settings().group(creativeTa
             if (hookComponent.hookState == HookComponent.HookState.PLANTED) {
                 val targetVector = (hookComponent.hookPosition).subtract(player.pos.add(0.0, 1.8, 0.0))
                 val targetVectorNormal = targetVector.normalize()
-                val targetVectorSet = targetVectorNormal.multiply(tier.reelSpeed)
+                val targetVectorWithSpeed = targetVectorNormal.multiply(tier.reelSpeed)
 
-                if (targetVectorSet.add(player.velocity).length() > targetVector.length()) {
+                if (targetVectorWithSpeed.add(player.velocity).length() > targetVector.length()) {
                     player.velocity = targetVector
                 } else {
-                    player.velocity = player.velocity.add(targetVectorSet)
+                    player.velocity = player.velocity.add(targetVectorWithSpeed)
                 }
                 player.velocityDirty = true
             }
         } else {
-            val data = PacketByteBuf(Unpooled.buffer())
+            val data = PacketByteBufs.create()
             val pos = stack.hookComponent?.hookPosition ?: Vec3d.ZERO
             data.writeDouble(pos.x)
             data.writeDouble(pos.y)
             data.writeDouble(pos.z)
-            PlayerStream.watching(player).forEach {
-                ServerSidePacketRegistry.INSTANCE.sendToPlayer(
+            PlayerLookup.tracking(player).forEach {
+                ServerPlayNetworking.send(
                         it,
                         HOOK_PARTICLE_PACKET_ID,
                         data
@@ -122,53 +116,28 @@ enum class HookTier(private val category: HookCategory) {
     override fun toString(): String = super.toString().toLowerCase()
 }
 
-interface HookComponent: ItemComponent<HookComponent> {
+class HookComponent(stack: ItemStack): ItemComponent(stack, HOOK_COMPONENT_KEY) {
     var hookPosition: Vec3d
+        get() = rootTag?.getVec3d("pos") ?: Vec3d.ZERO
+        set(it) = orCreateRootTag.putVec3d("pos", it)
     var target: Vec3d
+        get() = rootTag?.getVec3d("target") ?: Vec3d.ZERO
+        set(it) = orCreateRootTag.putVec3d("target", it)
     var hookState: HookState
+        get() = rootTag?.getString("hookstate")?.tryLet(HookState::valueOf) ?: HookState.INACTIVE
+        set(it) = orCreateRootTag.putString("hookstate", it.toString())
     var reelState: ReelState
+        get() = rootTag?.getString("reelstate")?.tryLet(ReelState::valueOf) ?: ReelState.IN
+        set(it) = orCreateRootTag.putString("reelstate", it.toString())
 
     fun release() {
-        hookPosition = Vec3d.ZERO
-        target = Vec3d.ZERO
-        hookState = HookState.INACTIVE
-    }
-
-    override fun isComponentEqual(other: Component): Boolean = other is HookComponent
-                && other.hookPosition == hookPosition
-                && other.hookState == hookState
-                && other.reelState == reelState
-                && other.target == target
-
-    override fun fromTag(tag: CompoundTag) {
-        if (tag.contains("hookPosition")) {
-            hookPosition = tag.getVec3d("hookPosition")
-        }
-        if (tag.contains("hookState")) {
-            hookState = HookState.valueOf(tag.getString("hookState"))
-        }
-        if (tag.contains("reelState")) {
-            reelState = ReelState.valueOf(tag.getString("reelState"))
-        }
-        if (tag.contains("targetPosition")) {
-            target = tag.getVec3d("targetPosition")
+        orCreateRootTag.apply {
+            remove("pos")
+            remove("target")
+            remove("hookstate")
         }
     }
 
-    override fun toTag(tag: CompoundTag): CompoundTag {
-        tag.putString("hookState", hookState.toString())
-        tag.putString("reelState", reelState.toString())
-        tag.putVec3d("hookPosition", hookPosition)
-        tag.putVec3d("targetPosition", target)
-        return tag
-    }
-
-    class Impl : HookComponent {
-        override var hookPosition: Vec3d = Vec3d.ZERO
-        override var target: Vec3d = Vec3d.ZERO
-        override var hookState: HookState = HookState.INACTIVE
-        override var reelState: ReelState = ReelState.IN
-    }
     enum class HookState {
         EXTENDING, PLANTED, INACTIVE
     }
@@ -176,11 +145,15 @@ interface HookComponent: ItemComponent<HookComponent> {
         IN, OUT, STATIC
     }
 }
+
+val ItemStack.hookComponent: HookComponent?
+    get() = HOOK_COMPONENT_KEY.getNullable(this)
+
 val HOOK_PARTICLE_PACKET_ID = Identifier(MODID, "hook_particle")
 
 fun registerHookParticlePacket() {
-    ClientSidePacketRegistry.INSTANCE.register(HOOK_PARTICLE_PACKET_ID) { ctx: PacketContext, data: PacketByteBuf ->
-        ctx.taskQueue.execute {
+    ClientPlayNetworking.registerGlobalReceiver(HOOK_PARTICLE_PACKET_ID) { client, _, data, _ ->
+        client.execute {
             MinecraftClient.getInstance().particleManager.addParticle(
                     ParticleTypes.CRIT,
                     data.readDouble(),
@@ -191,16 +164,3 @@ fun registerHookParticlePacket() {
         }
     }
 }
-
-fun registerHookComponent() {
-    for (hook in hooks)
-        ItemComponentCallback.event(hook).register(ItemComponentCallback { _, componentContainer ->
-        componentContainer.putIfAbsent(
-                HOOK_COMPONENT_TYPE,
-                HookComponent.Impl()
-        )
-    })
-}
-
-val ItemStack.hookComponent: HookComponent?
-    get() = ComponentProvider.fromItemStack(this).getComponent(HOOK_COMPONENT_TYPE)

@@ -3,23 +3,22 @@ package io.github.bluepython508.conveniences
 import dev.emi.trinkets.api.SlotGroups
 import dev.emi.trinkets.api.Slots
 import dev.emi.trinkets.api.TrinketSlots
+import dev.onyxstudios.cca.api.v3.component.ComponentKey
+import dev.onyxstudios.cca.api.v3.component.ComponentRegistry
+import dev.onyxstudios.cca.api.v3.item.ItemComponentFactoryRegistry
 import io.github.bluepython508.conveniences.item.*
 import io.github.bluepython508.conveniences.keybinds.TrinketKeybind
 import io.github.bluepython508.conveniences.network.registerKeybindPackets
-import io.netty.buffer.Unpooled
 import me.sargunvohra.mcmods.autoconfig1u.AutoConfig
 import me.sargunvohra.mcmods.autoconfig1u.serializer.Toml4jConfigSerializer
-import nerdhub.cardinal.components.api.ComponentRegistry
-import nerdhub.cardinal.components.api.ComponentType
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
-import net.fabricmc.fabric.api.network.ClientSidePacketRegistry
-import net.fabricmc.fabric.api.network.PacketContext
-import net.fabricmc.fabric.api.network.ServerSidePacketRegistry
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
+import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.options.KeyBinding
 import net.minecraft.client.util.InputUtil
-import net.minecraft.network.PacketByteBuf
 import net.minecraft.util.Identifier
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
@@ -29,15 +28,21 @@ const val MODID = "conveniences"
 
 val logger: Logger = LogManager.getLogger(MODID)
 
-fun log(message: String) {
+fun log(message: Any?) {
     logger.info(message)
 }
 
-val JETPACK_COMPONENT_TYPE: ComponentType<JetpackComponent> = ComponentRegistry.INSTANCE.registerIfAbsent(Identifier(MODID, "jetpack_component"), JetpackComponent::class.java)
-val TOOLBELT_COMPONENT_TYPE: ComponentType<ToolbeltComponent> = ComponentRegistry.INSTANCE.registerIfAbsent(Identifier(MODID, "toolbelt_component"), ToolbeltComponent::class.java)
-val HOOK_COMPONENT_TYPE: ComponentType<HookComponent> = ComponentRegistry.INSTANCE.registerIfAbsent(Identifier(MODID, "hook_component"), HookComponent::class.java)
-val GOGGLES_COMPONENT_TYPE: ComponentType<GoggleComponent> = ComponentRegistry.INSTANCE.registerIfAbsent(Identifier(MODID, "goggles_component"), GoggleComponent::class.java)
+val JETPACK_COMPONENT_KEY: ComponentKey<JetpackComponent> = ComponentRegistry.getOrCreate(Identifier(MODID, "jetpack_component"), JetpackComponent::class.java)
+val TOOLBELT_COMPONENT_KEY: ComponentKey<ToolbeltComponent> = ComponentRegistry.getOrCreate(Identifier(MODID, "toolbelt_component"), ToolbeltComponent::class.java)
+val HOOK_COMPONENT_KEY: ComponentKey<HookComponent> = ComponentRegistry.getOrCreate(Identifier(MODID, "hook_component"), HookComponent::class.java)
+val GOGGLES_COMPONENT_KEY: ComponentKey<GoggleComponent> = ComponentRegistry.getOrCreate(Identifier(MODID, "goggles_component"), GoggleComponent::class.java)
 
+fun registerItemComponents(registry: ItemComponentFactoryRegistry) {
+    registry.registerFor(ItemGoggles, GOGGLES_COMPONENT_KEY, ::GoggleComponent)
+    registry.registerFor(ItemToolBelt, TOOLBELT_COMPONENT_KEY, ::ToolbeltComponent)
+    registry.registerFor({ it is ItemJetpack }, JETPACK_COMPONENT_KEY, ::JetpackComponent)
+    registry.registerFor({ it is ItemHook }, HOOK_COMPONENT_KEY, ::HookComponent)
+}
 
 val config: ModConfig by lazy { AutoConfig.getConfigHolder(ModConfig::class.java).config }
 
@@ -73,14 +78,10 @@ fun init() {
     )
     registerItems()
     registerKeybindPackets()
-    registerJetpacksComponent()
-    registerToolbeltComponent()
     registerToolbeltPacket()
-    registerHookComponent()
-    registerGoggleComponent()
     registerGoggleLensPacket()
-    ServerSidePacketRegistry.INSTANCE.register(STOP_ELYTRA_PACKET_ID) { ctx: PacketContext, _: PacketByteBuf ->
-        ctx.taskQueue.execute { (ctx.player as StopElytra).stopElytra() }
+    ServerPlayNetworking.registerGlobalReceiver(STOP_ELYTRA_PACKET_ID) { server, player, _, _, _ ->
+        server.execute { (player as StopElytra).stopElytra() }
     }
 }
 val jetpackAscendKeyID = Identifier(MODID, "jetpack_ascend")
@@ -146,7 +147,7 @@ fun clientInit() {
                 }
             }
             if (it.player?.isFallFlying == true && triggerElytra.wasPressed()) {
-                ClientSidePacketRegistry.INSTANCE.sendToServer(STOP_ELYTRA_PACKET_ID, PacketByteBuf(Unpooled.buffer()))
+                ClientPlayNetworking.send(STOP_ELYTRA_PACKET_ID, PacketByteBufs.empty())
             }
 
             if (zoomIn.isPressed) {

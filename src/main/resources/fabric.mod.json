@@ -23,11 +23,22 @@
     ],
     "modmenu": [
       "io.github.bluepython508.conveniences.ModMenuIntegration"
+    ],
+    "cardinal-components-item": [
+      "io.github.bluepython508.conveniences.ConveniencesModKt::registerItemComponents"
     ]
   },
   "mixins": [
     "conveniences.mixins.json"
   ],
+  "custom": {
+    "cardinal-components": [
+      "conveniences:jetpack_component",
+      "conveniences:toolbelt_component",
+      "conveniences:hook_component",
+      "conveniences:goggles_component"
+    ]
+  },
   "depends": {
     "fabricloader": ">=0.7.1",
     "fabric-language-kotlin": "*",

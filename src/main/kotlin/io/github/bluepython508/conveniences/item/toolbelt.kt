@@ -2,26 +2,22 @@ package io.github.bluepython508.conveniences.item
 
 import dev.emi.trinkets.api.SlotGroups
 import dev.emi.trinkets.api.Slots
+import dev.onyxstudios.cca.api.v3.item.ItemComponent
 import io.github.bluepython508.conveniences.*
-import io.netty.buffer.Unpooled
-import nerdhub.cardinal.components.api.component.Component
-import nerdhub.cardinal.components.api.component.ComponentProvider
-import nerdhub.cardinal.components.api.event.ItemComponentCallback
-import nerdhub.cardinal.components.api.util.ItemComponent
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
-import net.fabricmc.fabric.api.network.ClientSidePacketRegistry
-import net.fabricmc.fabric.api.network.ServerSidePacketRegistry
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
+import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.minecraft.client.MinecraftClient
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.CompoundTag
-import net.minecraft.network.PacketByteBuf
 import net.minecraft.text.TranslatableText
 import net.minecraft.util.Hand
 import net.minecraft.util.Identifier
 
-object ItemToolBelt: Trinket(Settings().maxCount(1).group(creativeTab)) {
+object ItemToolBelt : Trinket(Settings().maxCount(1).group(creativeTab)) {
     val id = Identifier(MODID, "toolbelt")
     override fun canWearInSlot(group: String, slot: String): Boolean = group == SlotGroups.LEGS && slot == Slots.BELT
 
@@ -38,64 +34,35 @@ object ItemToolBelt: Trinket(Settings().maxCount(1).group(creativeTab)) {
         }
     }
 }
-interface ToolbeltComponent: ItemComponent<ToolbeltComponent> {
-    fun swapWith(itemStack: ItemStack, slot: Int): ItemStack
-    fun getStack(slot: Int): ItemStack
-}
 
-class ToolbeltComponentImpl: ToolbeltComponent {
-    private val items: Array<ItemStack> = Array(config.toolbeltSlots) { ItemStack.EMPTY }
-    override fun toTag(tag: CompoundTag): CompoundTag {
-        val itemsTag = CompoundTag()
-        for (slot in 0 until config.toolbeltSlots) {
-            itemsTag.put(slot.toString(), items[slot].toTag(CompoundTag()))
-        }
-        tag.put("items", itemsTag)
-        return tag
-    }
-    override fun isComponentEqual(other: Component): Boolean = other is ToolbeltComponentImpl
-            && other.items.contentEquals(items)
-
-    override fun fromTag(tag: CompoundTag) {
-        val itemsTag = tag["items"] as? CompoundTag ?: return
-        for (slot in 0 until config.toolbeltSlots) {
-            if (itemsTag.contains(slot.toString())) {
-                items[slot] = ItemStack.fromTag(itemsTag[slot.toString()] as CompoundTag?)
-            }
-        }
-    }
-
-    override fun swapWith(itemStack: ItemStack, slot: Int): ItemStack {
-        val old = items[slot]
-        items[slot] = itemStack
+class ToolbeltComponent(stack: ItemStack): ItemComponent(stack, TOOLBELT_COMPONENT_KEY) {
+    fun swapWith(itemStack: ItemStack, slot: Int): ItemStack {
+        val old = getStack(slot)
+        val compound = getCompound("items")
+        compound.put(slot.toString(), itemStack.toTag(CompoundTag()))
+        putCompound("items", compound)
         return old
     }
-    override fun getStack(slot: Int): ItemStack = items[slot]
-}
 
-fun registerToolbeltComponent() {
-    ItemComponentCallback.event(ItemToolBelt).register(ItemComponentCallback { _, componentContainer ->
-        componentContainer.putIfAbsent(
-            TOOLBELT_COMPONENT_TYPE,
-            ToolbeltComponentImpl()
-        )
-    })
+    fun getStack(slot: Int): ItemStack = getCompound("items").getCompound(slot.toString()).tryLet { ItemStack.fromTag(it) } ?: ItemStack.EMPTY
 }
 
 val ItemStack.toolbeltComponent: ToolbeltComponent?
-    get() = ComponentProvider.fromItemStack(this).getComponent(TOOLBELT_COMPONENT_TYPE)
+    get() = TOOLBELT_COMPONENT_KEY.getNullable(this)
 
 @Environment(EnvType.CLIENT)
-object ToolBeltRadialScreen: RadialScreen(toolBeltActivateKey, menuTitle = TranslatableText("conveniences.toolbelt.menu.title")) {
+object ToolBeltRadialScreen :
+    RadialScreen(toolBeltActivateKey, menuTitle = TranslatableText("conveniences.toolbelt.menu.title")) {
     override fun onTrigger(slot: Int) {
-        val packetData = PacketByteBuf(Unpooled.buffer())
+        val packetData = PacketByteBufs.create()
         packetData.writeInt(slot)
         packetData.writeBoolean(hasShiftDown())
-        ClientSidePacketRegistry.INSTANCE.sendToServer(TOOLBELT_SWAP_PACKET_ID, packetData)
+        ClientPlayNetworking.send(TOOLBELT_SWAP_PACKET_ID, packetData)
     }
 
     override fun getStackInSlot(slot: Int): ItemStack {
-        val stack = MinecraftClient.getInstance().player?.trinketsComponent?.getStack(SlotGroups.LEGS, Slots.BELT) ?: return ItemStack.EMPTY
+        val stack = MinecraftClient.getInstance().player?.trinketsComponent?.getStack(SlotGroups.LEGS, Slots.BELT)
+            ?: return ItemStack.EMPTY
         val component = stack.toolbeltComponent ?: return ItemStack.EMPTY
         return component.getStack(slot)
     }
@@ -108,18 +75,18 @@ object ToolBeltRadialScreen: RadialScreen(toolBeltActivateKey, menuTitle = Trans
 val TOOLBELT_SWAP_PACKET_ID = Identifier(MODID, "toolbelt_swap")
 
 fun registerToolbeltPacket() {
-    ServerSidePacketRegistry.INSTANCE.register(TOOLBELT_SWAP_PACKET_ID) { ctx, buf ->
+    ServerPlayNetworking.registerGlobalReceiver(TOOLBELT_SWAP_PACKET_ID) { server, player, _, buf, _ ->
         val slot = buf.readInt()
         val useOffhand = buf.readBoolean()
-        if (slot !in 0 until config.toolbeltSlots) return@register
-        val player = ctx.player
+        if (slot !in 0 until config.toolbeltSlots) return@registerGlobalReceiver
         val playerToolbelt = player.trinketsComponent.getStack(SlotGroups.LEGS, Slots.BELT)
-        if (playerToolbelt.item != ItemToolBelt) return@register
-        ctx.taskQueue.execute {
+        if (playerToolbelt.item != ItemToolBelt) return@registerGlobalReceiver
+        server.execute {
             toolbeltSwapStacks(player, useOffhand, slot)
         }
     }
 }
+
 fun toolbeltSwapStacks(player: PlayerEntity, toOffhand: Boolean, slot: Int) {
     val playerHandStack = if (toOffhand) player.offHandStack else player.mainHandStack
     val playerToolbelt = player.trinketsComponent.getStack(SlotGroups.LEGS, Slots.BELT)
