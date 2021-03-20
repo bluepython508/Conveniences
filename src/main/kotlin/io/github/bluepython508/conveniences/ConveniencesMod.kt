@@ -6,6 +6,7 @@ import dev.emi.trinkets.api.TrinketSlots
 import dev.onyxstudios.cca.api.v3.component.ComponentKey
 import dev.onyxstudios.cca.api.v3.component.ComponentRegistry
 import dev.onyxstudios.cca.api.v3.item.ItemComponentFactoryRegistry
+import io.github.bluepython508.conveniences.block.registerBlocks
 import io.github.bluepython508.conveniences.item.*
 import io.github.bluepython508.conveniences.keybinds.TrinketKeybind
 import io.github.bluepython508.conveniences.network.registerKeybindPackets
@@ -74,9 +75,10 @@ fun init() {
     TrinketSlots.addSlot(
         SlotGroups.CHEST,
         ConveniencesSlots.LAUNCHER,
-        Identifier("trinkets", "textures/item/empty_trinket_slot.png")
+        Identifier("trinkets", "textures/item/empty.png")
     )
     registerItems()
+    registerBlocks()
     registerKeybindPackets()
     registerToolbeltPacket()
     registerGoggleLensPacket()

@@ -9,7 +9,6 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
-import net.fabricmc.fabric.api.registry.FuelRegistry
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
@@ -44,8 +43,7 @@ import kotlin.math.sin
 class ItemJetpack(val tier: JetpackTier) : Trinket(
     Settings().group(creativeTab).maxCount(1)
         .maxDamage(tier.fuelStorage)
-),
-    AmountRepairable {
+) {
     val id = Identifier(MODID, "jetpack_${tier.toString().toLowerCase()}")
     override fun appendTooltip(
         stack: ItemStack?,
@@ -157,8 +155,8 @@ class ItemJetpack(val tier: JetpackTier) : Trinket(
     override fun onKeybindServer(player: PlayerEntity, stack: ItemStack, keybind: Identifier) {
         val stackLoaded = player.trinketsComponent.getStack(SlotGroups.CHEST, Slots.BACKPACK)
         when (keybind) {
-             jetpackEnableKeyID -> toggleEnabled(stackLoaded)
-             jetpackHoverKeyID -> toggleHover(player, stackLoaded)
+            jetpackEnableKeyID -> toggleEnabled(stackLoaded)
+            jetpackHoverKeyID -> toggleHover(player, stackLoaded)
         }
     }
 
@@ -194,13 +192,6 @@ class ItemJetpack(val tier: JetpackTier) : Trinket(
         stack.damage += 1
         return true
     }
-
-    override fun canRepair(stack: ItemStack, ingredient: ItemStack): Boolean =
-        stack.damage != 0 && FuelRegistry.INSTANCE[ingredient.item]?.let { it > 0 } == true
-
-    override fun getRepairAmount(toRepair: ItemStack, repairFrom: ItemStack): Int =
-        (FuelRegistry.INSTANCE[repairFrom.item] / (toRepair.jetpackComponent?.tier?.furnaceFuelFlightRatio
-            ?: 1.0)).roundToInt()
 
     internal fun thrustServer(player: PlayerEntity, stack: ItemStack) {
         if (!useFuel(player, stack)) return
@@ -307,25 +298,27 @@ enum class JetpackTier(private val category: JetpackCategory) : StringIdentifiab
 class JetpackComponent(stack: ItemStack): ItemComponent(stack, JETPACK_COMPONENT_KEY) {
     val tier: JetpackTier = (stack.item as ItemJetpack).tier
     var enabled: Boolean
-        get() = if (rootTag?.contains("enabled") == true) { getBoolean("enabled") } else true
+        get() = /*if (rootTag?.contains("enabled") == true) {
+            getBoolean("enabled")
+        } else true*/ true
         set(value) {
-            if (!value && hovering) hovering = false
-            putBoolean("enabled", value)
+            /*if (!value && hovering) hovering = false
+            putBoolean("enabled", value)*/
         }
     var hovering: Boolean
-        get() = getBoolean("hovering")
+        get() = /*getBoolean("hovering")*/ false
         set(value) {
-            if (!tier.canHover) {
+            /*if (!tier.canHover) {
                 return
             }
             if (value) enabled = true
             if (!value) hoverHeight = 0.0
-            putBoolean("hovering", value)
+            putBoolean("hovering", value)*/
         }
 
     var hoverHeight: Double
-        get() = getDouble("height")
-        set(value) = putDouble("height", value)
+        get() = /*getDouble("height")*/ 0.0
+        set(value) { /*putDouble("height", value)*/ }
 }
 
 val ItemStack.jetpackComponent: JetpackComponent?
@@ -369,7 +362,7 @@ fun registerJetpackPackets() {
             } else {
                 item.thrustServer(player, stack)
             }
-            player.trinketsComponent.sync()
+//            player.trinketsComponent.sync()
         }
     }
 }
